@@ -173,7 +173,6 @@
   .input-group button {
     flex-shrink: 0;
   }
-  /* 多選下拉式選單樣式 */
   .multiselect {
     width: 200px;
     position: relative;
@@ -217,6 +216,8 @@
     <div class="input-group">
       <button id="submitBtn">記錄</button>
       <button id="manageCategoriesBtn">管理分類</button>
+      <button id="exportBtn">導出數據</button>
+      <button id="importBtn">導入數據</button>
     </div>
     <div class="filterOptions">
       <div>
@@ -256,21 +257,52 @@
     const categoryModal = document.getElementById('categoryModal');
     const categoryListElement = document.getElementById('categoryList');
     const closeModal = document.querySelector('.close');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
     
-    let savedUrls = JSON.parse(localStorage.getItem('savedUrls')) || [];
-    let categories = JSON.parse(localStorage.getItem('categories')) || [];
+    let savedUrls = [];
+    let categories = [];
     let sortOrder = 1; // 1 for ascending, -1 for descending
     let currentSortType = 'date'; // 'date' or 'alpha'
     let selectedCategories = [];
     
-    function saveUrls() {
-      localStorage.setItem('savedUrls', JSON.stringify(savedUrls));
+    // 從 localStorage 讀取數據
+    function loadDataFromStorage() {
+      const savedData = localStorage.getItem('urlRecorderData');
+      if (savedData) {
+        const data = JSON.parse(savedData);
+        savedUrls = data.savedUrls || [];
+        categories = data.categories || [];
+      } else {
+        savedUrls = [];
+        categories = [];
+      }
+      updateCategoryList();
+      sortAndDisplayUrls();
     }
-    
-    function saveCategories() {
-      localStorage.setItem('categories', JSON.stringify(categories));
+
+    // 將數據保存到 localStorage
+    function saveDataToStorage() {
+      const data = {
+        savedUrls: savedUrls,
+        categories: categories
+      };
+      localStorage.setItem('urlRecorderData', JSON.stringify(data));
     }
-    
+
+    // 將數據保存到外部文件
+    function saveDataToFile() {
+      const data = {
+        savedUrls: savedUrls,
+        categories: categories
+      };
+      const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'savedData.json';
+      a.click();
+    }
+
     function updateCategoryList() {
       categoryDatalist.innerHTML = '';
       categoryFilterDropdown.innerHTML = '';
@@ -381,9 +413,8 @@
           categories.push(category);
         }
       });
-      saveCategories();
       updateCategoryList();
-      saveUrls();
+      saveDataToStorage();
       sortAndDisplayUrls();
     }
     
@@ -424,9 +455,8 @@
               categories.push(category);
             }
           });
-          saveCategories();
           updateCategoryList();
-          saveUrls();
+          saveDataToStorage();
           sortAndDisplayUrls();
         }
       };
@@ -445,7 +475,7 @@
     function deleteUrl(index) {
       if (confirm('確定要刪除這個網址嗎？')) {
         savedUrls.splice(index, 1);
-        saveUrls();
+        saveDataToStorage();
         sortAndDisplayUrls();
       }
     }
@@ -493,9 +523,8 @@
               urlObj.categories[categoryIndex] = newCategory;
             }
           });
-          saveCategories();
-          saveUrls();
           updateCategoryList();
+          saveDataToStorage();
           displayCategories();
           sortAndDisplayUrls();
         }
@@ -518,9 +547,8 @@
         savedUrls.forEach(urlObj => {
           urlObj.categories = urlObj.categories.filter(cat => cat !== category);
         });
-        saveCategories();
-        saveUrls();
         updateCategoryList();
+        saveDataToStorage();
         displayCategories();
         sortAndDisplayUrls();
       }
@@ -532,7 +560,7 @@
       } else {
         savedUrls.sort((a, b) => sortOrder * (new Date(b.date) - new Date(a.date)));
       }
-      saveUrls();
+      saveDataToStorage();
       displaySavedUrls();
     }
     
@@ -605,8 +633,37 @@
         categoryModal.style.display = 'none';
       }
     };
+
+    exportBtn.onclick = () => {
+      saveDataToFile();
+    };
+
+    importBtn.onclick = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (event) => {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            savedUrls = data.savedUrls || [];
+            categories = data.categories || [];
+            updateCategoryList();
+            saveDataToStorage();
+            sortAndDisplayUrls();
+          } catch (error) {
+            console.error('Error parsing imported data:', error);
+            alert('導入失敗，請確保文件格式正確。');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    };
     
-    updateCategoryList();
-    sortAndDisplayUrls();
+    // 初始化時載入數據
+    loadDataFromStorage();
   </script>
 </body></html>
