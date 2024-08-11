@@ -1,0 +1,612 @@
+<html><head><base href="https://websim.example.com/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>網址記錄器</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  }
+  .container {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 800px;
+  }
+  h1, h2 {
+    color: #333;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  input, select {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin: 0 0.2rem 0.5rem 0;
+  }
+  button:hover {
+    background-color: #45a049;
+  }
+  #submitBtn {
+    background-color: white;
+    color: black;
+    font-weight: bold;
+    border: 2px solid black;
+  }
+  #submitBtn:hover {
+    background-color: #f0f0f0;
+  }
+  #manageCategoriesBtn {
+    background-color: #1E90FF;
+  }
+  #manageCategoriesBtn:hover {
+    background-color: #187bcd;
+  }
+  #urlList, #categoryList {
+    list-style-type: none;
+    padding: 0;
+    text-align: left;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  #urlList li, #categoryList li {
+    margin-bottom: 0.5rem;
+    word-break: break-all;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #f9f9f9;
+    padding: 0.5rem;
+    border-radius: 4px;
+  }
+  #urlList a {
+    color: #1a73e8;
+    text-decoration: none;
+    transition: color 0.3s;
+    flex-grow: 1;
+  }
+  #urlList a:hover {
+    color: #174ea6;
+    text-decoration: underline;
+  }
+  .urlInfo {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+  .urlName {
+    font-weight: bold;
+    margin-bottom: 0.2rem;
+  }
+  .urlCategories, .urlDate {
+    font-size: 0.8rem;
+    color: #666;
+  }
+  .editBtn, .deleteBtn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  .deleteBtn {
+    background-color: #f44336;
+  }
+  .deleteBtn:hover {
+    background-color: #d32f2f;
+  }
+  .filterOptions {
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+  }
+  .modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+  }
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .close:hover,
+  .close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .category-tag {
+    display: inline-block;
+    background-color: #e0e0e0;
+    padding: 2px 8px;
+    margin: 2px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+  }
+  .input-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .input-group input {
+    flex-grow: 1;
+    margin-right: 0.5rem;
+    margin-bottom: 0;
+  }
+  .input-group button {
+    flex-shrink: 0;
+  }
+  /* 多選下拉式選單樣式 */
+  .multiselect {
+    width: 200px;
+    position: relative;
+  }
+  .multiselect-dropdown {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    width: 100%;
+    display: none;
+  }
+  .multiselect-option {
+    padding: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  .multiselect-option:hover {
+    background-color: #f0f0f0;
+  }
+  .multiselect-option.selected {
+    background-color: #e0e0e0;
+  }
+  .multiselect-checkbox {
+    margin-right: 5px;
+    width: 16px;
+    height: 16px;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>網址記錄器</h1>
+    <input type="url" id="urlInput" placeholder="請輸入網址" required>
+    <input type="text" id="nameInput" placeholder="給網址取個名字" required>
+    <input type="text" id="categoryInput" placeholder="輸入分類（用逗號分隔多個分類）" list="categoryDatalist">
+    <datalist id="categoryDatalist"></datalist>
+    <div class="input-group">
+      <button id="submitBtn">記錄</button>
+      <button id="manageCategoriesBtn">管理分類</button>
+    </div>
+    <div class="filterOptions">
+      <div>
+        <button id="sortAlpha">按名稱排序</button>
+        <button id="sortDate">按日期排序</button>
+        <button id="toggleSortOrder">反向排序當前排序</button>
+      </div>
+      <div class="multiselect">
+        <button id="categoryFilterBtn">選擇分類</button>
+        <div id="categoryFilterDropdown" class="multiselect-dropdown"></div>
+      </div>
+    </div>
+    <ul id="urlList"></ul>
+  </div>
+
+  <div id="categoryModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>管理分類</h2>
+      <ul id="categoryList"></ul>
+    </div>
+  </div>
+
+  <script>
+    const urlInput = document.getElementById('urlInput');
+    const nameInput = document.getElementById('nameInput');
+    const categoryInput = document.getElementById('categoryInput');
+    const categoryDatalist = document.getElementById('categoryDatalist');
+    const submitBtn = document.getElementById('submitBtn');
+    const urlList = document.getElementById('urlList');
+    const sortAlphaBtn = document.getElementById('sortAlpha');
+    const sortDateBtn = document.getElementById('sortDate');
+    const toggleSortOrderBtn = document.getElementById('toggleSortOrder');
+    const categoryFilterBtn = document.getElementById('categoryFilterBtn');
+    const categoryFilterDropdown = document.getElementById('categoryFilterDropdown');
+    const manageCategoriesBtn = document.getElementById('manageCategoriesBtn');
+    const categoryModal = document.getElementById('categoryModal');
+    const categoryListElement = document.getElementById('categoryList');
+    const closeModal = document.querySelector('.close');
+    
+    let savedUrls = JSON.parse(localStorage.getItem('savedUrls')) || [];
+    let categories = JSON.parse(localStorage.getItem('categories')) || [];
+    let sortOrder = 1; // 1 for ascending, -1 for descending
+    let currentSortType = 'date'; // 'date' or 'alpha'
+    let selectedCategories = [];
+    
+    function saveUrls() {
+      localStorage.setItem('savedUrls', JSON.stringify(savedUrls));
+    }
+    
+    function saveCategories() {
+      localStorage.setItem('categories', JSON.stringify(categories));
+    }
+    
+    function updateCategoryList() {
+      categoryDatalist.innerHTML = '';
+      categoryFilterDropdown.innerHTML = '';
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        categoryDatalist.appendChild(option);
+        
+        const categoryOption = document.createElement('div');
+        categoryOption.className = 'multiselect-option';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'multiselect-checkbox';
+        checkbox.checked = selectedCategories.includes(category);
+        
+        const label = document.createElement('span');
+        label.textContent = category;
+        
+        categoryOption.appendChild(checkbox);
+        categoryOption.appendChild(label);
+        
+        categoryOption.onclick = (event) => {
+          if (event.target !== checkbox) {
+            checkbox.checked = !checkbox.checked;
+          }
+          toggleCategory(category, categoryOption);
+        };
+        
+        if (selectedCategories.includes(category)) {
+          categoryOption.classList.add('selected');
+        }
+        categoryFilterDropdown.appendChild(categoryOption);
+      });
+    }
+    
+    function toggleCategory(category, element) {
+      const checkbox = element.querySelector('.multiselect-checkbox');
+      if (selectedCategories.includes(category)) {
+        selectedCategories = selectedCategories.filter(cat => cat !== category);
+        element.classList.remove('selected');
+        checkbox.checked = false;
+      } else {
+        selectedCategories.push(category);
+        element.classList.add('selected');
+        checkbox.checked = true;
+      }
+      sortAndDisplayUrls();
+    }
+    
+    function displaySavedUrls() {
+      urlList.innerHTML = '';
+      const filteredUrls = savedUrls.filter(urlObj => 
+        selectedCategories.length === 0 || selectedCategories.some(cat => urlObj.categories.includes(cat))
+      );
+      
+      filteredUrls.forEach((urlObj, index) => {
+        const li = document.createElement('li');
+        const urlInfo = document.createElement('div');
+        urlInfo.className = 'urlInfo';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'urlName';
+        nameSpan.textContent = urlObj.name;
+        
+        const a = document.createElement('a');
+        a.href = urlObj.url;
+        a.textContent = urlObj.url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        
+        const categoriesSpan = document.createElement('span');
+        categoriesSpan.className = 'urlCategories';
+        categoriesSpan.innerHTML = '分類: ' + urlObj.categories.map(cat => `<span class="category-tag">${cat}</span>`).join(' ');
+        
+        const dateSpan = document.createElement('span');
+        dateSpan.className = 'urlDate';
+        dateSpan.textContent = `記錄時間: ${new Date(urlObj.date).toLocaleString()}`;
+        
+        urlInfo.appendChild(nameSpan);
+        urlInfo.appendChild(a);
+        urlInfo.appendChild(categoriesSpan);
+        urlInfo.appendChild(dateSpan);
+        
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '編輯';
+        editBtn.className = 'editBtn';
+        editBtn.onclick = () => editUrl(index);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '刪除';
+        deleteBtn.className = 'deleteBtn';
+        deleteBtn.onclick = () => deleteUrl(index);
+        
+        li.appendChild(urlInfo);
+        li.appendChild(editBtn);
+        li.appendChild(deleteBtn);
+        urlList.appendChild(li);
+      });
+    }
+    
+    function addUrl(url, name, categoriesString) {
+      const processedUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
+      const categoriesArray = categoriesString.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
+      savedUrls.unshift({ url: processedUrl, name, categories: categoriesArray, date: new Date().toISOString() });
+      categoriesArray.forEach(category => {
+        if (!categories.includes(category)) {
+          categories.push(category);
+        }
+      });
+      saveCategories();
+      updateCategoryList();
+      saveUrls();
+      sortAndDisplayUrls();
+    }
+    
+    function editUrl(index) {
+      const li = urlList.children[index];
+      const urlObj = savedUrls[index];
+      li.innerHTML = '';
+      
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.value = urlObj.name;
+      nameInput.placeholder = '名稱';
+      
+      const urlInput = document.createElement('input');
+      urlInput.type = 'url';
+      urlInput.value = urlObj.url;
+      urlInput.placeholder = '網址';
+      
+      const categoryInput = document.createElement('input');
+      categoryInput.type = 'text';
+      categoryInput.value = urlObj.categories.join(', ');
+      categoryInput.placeholder = '分類（用逗號分隔多個分類）';
+      categoryInput.setAttribute('list', 'categoryDatalist');
+      
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = '保存';
+      saveBtn.onclick = () => {
+        const newName = nameInput.value.trim();
+        const newUrl = urlInput.value.trim();
+        const newCategories = categoryInput.value.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
+        if (newName && newUrl) {
+          savedUrls[index].name = newName;
+          savedUrls[index].url = newUrl.startsWith('http://') || newUrl.startsWith('https://') ? newUrl : `https://${newUrl}`;
+          savedUrls[index].categories = newCategories;
+          savedUrls[index].date = new Date().toISOString(); // 更新日期
+          newCategories.forEach(category => {
+            if (!categories.includes(category)) {
+              categories.push(category);
+            }
+          });
+          saveCategories();
+          updateCategoryList();
+          saveUrls();
+          sortAndDisplayUrls();
+        }
+      };
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = '取消';
+      cancelBtn.onclick = () => sortAndDisplayUrls();
+      
+      li.appendChild(nameInput);
+      li.appendChild(urlInput);
+      li.appendChild(categoryInput);
+      li.appendChild(saveBtn);
+      li.appendChild(cancelBtn);
+    }
+    
+    function deleteUrl(index) {
+      if (confirm('確定要刪除這個網址嗎？')) {
+        savedUrls.splice(index, 1);
+        saveUrls();
+        sortAndDisplayUrls();
+      }
+    }
+    
+    function displayCategories() {
+      categoryListElement.innerHTML = '';
+      categories.forEach((category, index) => {
+        const li = document.createElement('li');
+        const categorySpan = document.createElement('span');
+        categorySpan.textContent = category;
+        
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '編輯';
+        editBtn.onclick = () => editCategory(index);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '刪除';
+        deleteBtn.onclick = () => deleteCategory(index);
+        
+        li.appendChild(categorySpan);
+        li.appendChild(editBtn);
+        li.appendChild(deleteBtn);
+        categoryListElement.appendChild(li);
+      });
+    }
+    
+    function editCategory(index) {
+      const li = categoryListElement.children[index];
+      const categorySpan = li.querySelector('span');
+      const oldCategory = categorySpan.textContent;
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = oldCategory;
+      
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = '保存';
+      saveBtn.onclick = () => {
+        const newCategory = input.value.trim();
+        if (newCategory && newCategory !== oldCategory) {
+          categories[index] = newCategory;
+          savedUrls.forEach(urlObj => {
+            const categoryIndex = urlObj.categories.indexOf(oldCategory);
+            if (categoryIndex !== -1) {
+              urlObj.categories[categoryIndex] = newCategory;
+            }
+          });
+          saveCategories();
+          saveUrls();
+          updateCategoryList();
+          displayCategories();
+          sortAndDisplayUrls();
+        }
+      };
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = '取消';
+      cancelBtn.onclick = () => displayCategories();
+      
+      li.innerHTML = '';
+      li.appendChild(input);
+      li.appendChild(saveBtn);
+      li.appendChild(cancelBtn);
+    }
+    
+    function deleteCategory(index) {
+      const category = categories[index];
+      if (confirm(`確定要刪除分類 "${category}" 嗎？這將會從所有使用此分類的網址中移除此分類。`)) {
+        categories.splice(index, 1);
+        savedUrls.forEach(urlObj => {
+          urlObj.categories = urlObj.categories.filter(cat => cat !== category);
+        });
+        saveCategories();
+        saveUrls();
+        updateCategoryList();
+        displayCategories();
+        sortAndDisplayUrls();
+      }
+    }
+    
+    function sortAndDisplayUrls() {
+      if (currentSortType === 'alpha') {
+        savedUrls.sort((a, b) => sortOrder * a.name.localeCompare(b.name));
+      } else {
+        savedUrls.sort((a, b) => sortOrder * (new Date(b.date) - new Date(a.date)));
+      }
+      saveUrls();
+      displaySavedUrls();
+    }
+    
+    submitBtn.addEventListener('click', () => {
+      const url = urlInput.value.trim();
+      const name = nameInput.value.trim();
+      const categories = categoryInput.value.trim();
+      if (url && name) {
+        addUrl(url, name, categories);
+        urlInput.value = '';
+        nameInput.value = '';
+        categoryInput.value = '';
+      }
+    });
+    
+    urlInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        nameInput.focus();
+      }
+    });
+    
+    nameInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        categoryInput.focus();
+      }
+    });
+    
+    categoryInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitBtn.click();
+      }
+    });
+    
+    sortAlphaBtn.addEventListener('click', () => {
+      currentSortType = 'alpha';
+      sortAndDisplayUrls();
+    });
+    
+    sortDateBtn.addEventListener('click', () => {
+      currentSortType = 'date';
+      sortAndDisplayUrls();
+    });
+    
+    toggleSortOrderBtn.addEventListener('click', () => {
+      sortOrder *= -1;
+      sortAndDisplayUrls();
+    });
+    
+    categoryFilterBtn.onclick = () => {
+      categoryFilterDropdown.style.display = categoryFilterDropdown.style.display === 'none' ? 'block' : 'none';
+    };
+    
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.multiselect')) {
+        categoryFilterDropdown.style.display = 'none';
+      }
+    });
+    
+    manageCategoriesBtn.onclick = () => {
+      categoryModal.style.display = 'block';
+      displayCategories();
+    };
+    
+    closeModal.onclick = () => {
+      categoryModal.style.display = 'none';
+    };
+    
+    window.onclick = (event) => {
+      if (event.target == categoryModal) {
+        categoryModal.style.display = 'none';
+      }
+    };
+    
+    updateCategoryList();
+    sortAndDisplayUrls();
+  </script>
+</body></html>
